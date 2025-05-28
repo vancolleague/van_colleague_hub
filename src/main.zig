@@ -1,6 +1,8 @@
 const std = @import("std");
 const testing = std.testing;
+
 const clap = @import("clap");
+const httpz = @import("httpz");
 
 /// This imports the separate module containing `root.zig`. Take a look in `build.zig` for details.
 //const lib = @import("van_colleague_hub_lib");
@@ -32,4 +34,20 @@ pub fn main() !void {
 
     if (res.args.help != 0)
         std.debug.print("--help\n", .{});
+
+    var server = try httpz.Server(void).init(allocator, .{ .port = 5882 }, {});
+    defer {
+        server.stop();
+        server.deinit();
+    }
+
+    var router = try server.router(.{});
+    router.get("/api/user:id", getUser, .{});
+
+    try server.listen();
+}
+
+fn getUser(req: *httpz.Request, res: *httpz.Response) !void {
+    res.status = 200;
+    try res.json(.{ .id = req.param("id").?, .name = "Teg" }, .{});
 }
